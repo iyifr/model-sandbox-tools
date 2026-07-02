@@ -36,7 +36,9 @@ export function sandboxRun(options: SandboxRunOptions) {
           return formatYaml({
             exit_code: 124,
             stdout: '',
-            stderr: `exec timed out after ${err.timeoutMs}ms`,
+            stderr: err.timeoutMs != null
+              ? `exec timed out after ${err.timeoutMs}ms`
+              : 'exec timed out',
           })
         }
         throw err

@@ -1,4 +1,5 @@
 import { run as openaiRun, type Agent } from '@openai/agents'
+
 import { Sandbox, Volume } from 'microsandbox'
 import {
   sandboxStore,
@@ -8,6 +9,10 @@ import {
 } from 'mst-core'
 import type { WorkspaceContextOptions } from 'mst-core'
 import { discoverSandboxConfig } from './discover-config.js'
+
+function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
+  return Buffer.from(a).equals(Buffer.from(b))
+}
 
 type RunOptions = Record<string, unknown> & {
   [WORKSPACE_CTX]?: WorkspaceContextOptions
@@ -71,21 +76,21 @@ export async function run(
   if (config.configure) builder = config.configure(builder)
 
   const sb = await builder.create()
-  const inputBasenames = new Set<string>()
+  const inputSnapshot = new Map<string, Uint8Array>()
 
   try {
     const ws = workspace as WorkspaceContextOptions | undefined
     if (ws?.inputFiles?.length) {
       await sb.fs().mkdir('/workspace').catch(() => {})
       for (const f of ws.inputFiles) {
-        const fileName = f instanceof File ? f.name : f.name
+        const fileName = f.name
         assertSafeFilename(fileName)
         const data =
           f instanceof File
             ? new Uint8Array(await f.arrayBuffer())
             : normalizeFile(f).data
         await sb.fs().write(`/workspace/${fileName}`, data)
-        inputBasenames.add(fileName)
+        inputSnapshot.set(fileName, data)
       }
     }
 
@@ -107,8 +112,12 @@ export async function run(
       for (const entry of entries) {
         if (entry.kind !== 'file') continue
         const fileName = entry.path.split('/').pop()!
-        if (inputBasenames.has(fileName)) continue
         const bytes = await sb.fs().read(entry.path)
+        const original = inputSnapshot.get(fileName)
+        const changed = original
+          ? !bytesEqual(original, bytes)
+          : true
+        if (!changed) continue
         await ws.onFileOutput({
           file_name: fileName,
           version: 1,
