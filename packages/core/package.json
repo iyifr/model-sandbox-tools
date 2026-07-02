@@ -1,0 +1,23 @@
+{
+  "name": "mst-core",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "microsandbox": "^0.6.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}

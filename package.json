@@ -1,0 +1,13 @@
+{
+  "name": "mst",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "demo:law-firm": "pnpm --filter @mst/example-law-firm start",
+    "verify": "bun run scripts/verify.mts"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}
