@@ -5,6 +5,8 @@ export { assertSafeFilename } from './validate.js'
 export { WorkspaceContext, normalizeFile } from './workspace.js'
 export type {
   SandboxVolumeMount,
+  NetworkConfig,
+  SandboxSecret,
   SandboxRunOptions,
   FileOutPayload,
   WorkspaceInput,

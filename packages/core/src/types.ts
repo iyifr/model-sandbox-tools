@@ -7,14 +7,27 @@ export type SandboxVolumeMount = {
   readonly?: boolean
 }
 
+export type NetworkConfig =
+  | false                   // explicit lockdown — throws if packages or secrets present
+  | true                    // full unrestricted — escape hatch
+  | { allow?: string[] }    // allowlist — merged with hosts from secrets + pypi from packages
+
+export type SandboxSecret = {
+  env: string     // env var name inside the sandbox
+  value: string   // the secret value (from vault, process.env, etc.)
+  host: string    // only exposed to connections to this host; auto-added to network allowlist
+}
+
 export type SandboxRunOptions = {
   image: string
   interpreter: string
   cpus?: number
   memory?: number
-  network?: boolean
+  network?: NetworkConfig
   timeoutSecs?: number
   env?: Record<string, string>
+  secrets?: SandboxSecret[]
+  packages?: string[]
   volumes?: SandboxVolumeMount[]
   configure?: (b: SandboxBuilder) => SandboxBuilder
 }

@@ -9,6 +9,7 @@ function configKey(c: SandboxRunOptions): string {
     cpus: c.cpus ?? 1,
     memory: c.memory ?? 256,
     network: c.network ?? false,
+    packages: [...(c.packages ?? [])].sort(),
   })
 }
 

@@ -39,6 +39,17 @@ export async function run(
     return openaiRun(agent, input, openaiOptions as Parameters<typeof openaiRun>[2])
   }
 
+  if (config.network === false) {
+    const hasPackages = (config.packages?.length ?? 0) > 0
+    const hasSecrets = (config.secrets?.length ?? 0) > 0
+    if (hasPackages || hasSecrets) {
+      throw new Error(
+        '[mst] network: false is incompatible with `packages` and `secrets` — ' +
+          'they require network access. Use network: { allow: [] } to enable an allowlist.',
+      )
+    }
+  }
+
   const name = `mst-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`
 
   let builder = Sandbox.builder(name)
@@ -48,7 +59,35 @@ export async function run(
     .ephemeral(true)
     .replace()
 
-  if (!config.network) builder = builder.disableNetwork()
+  // Build effective domain allowlist from all three sources
+  const pypiDomains = config.packages?.length
+    ? ['pypi.org', 'files.pythonhosted.org']
+    : []
+  const secretHosts = (config.secrets ?? []).map((s) => s.host)
+  const explicitDomains =
+    config.network !== false &&
+    config.network !== true &&
+    config.network != null
+      ? (config.network.allow ?? [])
+      : []
+  const allDomains = [
+    ...new Set([...explicitDomains, ...secretHosts, ...pypiDomains]),
+  ]
+
+  if (config.network === true) {
+    // full unrestricted — no policy applied
+  } else if (allDomains.length > 0) {
+    builder = builder.network((n) =>
+      n.policy((p) => p.defaultDeny().egress((r) => r.allowDomains(allDomains))),
+    )
+  } else {
+    builder = builder.disableNetwork()
+  }
+
+  for (const secret of config.secrets ?? []) {
+    builder = builder.secretEnv(secret.env, secret.value, secret.host)
+  }
+
   if (config.env) {
     for (const [k, v] of Object.entries(config.env)) {
       builder = builder.env(k, v)
@@ -79,6 +118,15 @@ export async function run(
   const inputSnapshot = new Map<string, Uint8Array>()
 
   try {
+    if (config.packages?.length) {
+      const out = await sb.shell(`pip install --quiet ${config.packages.join(' ')}`)
+      if (!out.success) {
+        throw new Error(
+          `[mst] pip install failed (exit ${out.code}):\n${out.stderr()}`,
+        )
+      }
+    }
+
     const ws = workspace as WorkspaceContextOptions | undefined
     if (ws?.inputFiles?.length) {
       await sb.fs().mkdir('/workspace').catch(() => {})
