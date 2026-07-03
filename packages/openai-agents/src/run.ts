@@ -56,7 +56,7 @@ export async function run(
     .image(config.image)
     .cpus(config.cpus ?? 1)
     .memory(config.memory ?? 256)
-    .ephemeral(true)
+    .ephemeral(!config.persist)
     .replace()
 
   // Build effective domain allowlist from all three sources

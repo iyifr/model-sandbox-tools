@@ -29,6 +29,7 @@ export type SandboxRunOptions = {
   secrets?: SandboxSecret[]
   packages?: string[]
   volumes?: SandboxVolumeMount[]
+  persist?: boolean
   configure?: (b: SandboxBuilder) => SandboxBuilder
 }
 
