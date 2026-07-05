@@ -46,4 +46,10 @@ export type WorkspaceInput =
 export type WorkspaceContextOptions = {
   inputFiles?: WorkspaceInput[]
   onFileOutput?: (payload: FileOutPayload) => void | Promise<void>
+  /** Called with sandbox workspace paths after each run (for UI file trees). */
+  onWorkspaceSnapshot?: (paths: string[]) => void | Promise<void>
+  /** Stable sandbox name for persist: true configs across multiple run() calls. */
+  sandboxName?: string
+  /** Skip writing inputFiles (use on follow-up turns when the sandbox already has them). */
+  skipInputSeed?: boolean
 }

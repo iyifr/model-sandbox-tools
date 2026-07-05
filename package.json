@@ -5,9 +5,16 @@
   "scripts": {
     "build": "pnpm -r run build",
     "demo:law-firm": "pnpm --filter @mst/example-law-firm start",
-    "verify": "bun run scripts/verify.mts"
+    "demo:law-firm:cli": "pnpm --filter @mst/example-law-firm cli",
+    "verify": "bun run scripts/verify.mts",
+    "e2e:smoke": "bun run scripts/e2e-smoke.mts",
+    "test:law-firm-cli": "bun run scripts/test-law-firm-cli.mts"
   },
   "devDependencies": {
-    "typescript": "^5.8.0"
+    "@openai/agents": "^0.12.0",
+    "microsandbox": "^0.6.1",
+    "openai": "^6.45.0",
+    "typescript": "^5.8.0",
+    "undici": "^7.0.0"
   }
 }

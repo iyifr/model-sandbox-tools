@@ -3,14 +3,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "bun run index.ts"
+    "start": "bun run index.ts",
+    "cli": "bun run cli.ts"
   },
   "dependencies": {
+    "@clack/prompts": "^0.11.0",
     "@mst/openai-agents": "workspace:*",
+    "@openai/agents": "^0.12.0",
+    "@opentui/core": "^0.4.2",
     "mst-core": "workspace:*",
-    "@openai/agents": "^0.12.0"
+    "openai": "^5.0.0",
+    "picocolors": "^1.1.1"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/node": "^22.0.0"
   }
 }
