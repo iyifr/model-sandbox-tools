@@ -1,7 +1,6 @@
 {
   "name": "@mst/openai-agents",
   "version": "0.0.1",
-  "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,7 +14,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "mst-core": "workspace:*",
+    "mst-core": "^0.0.1",
     "microsandbox": "^0.6.1"
   },
   "peerDependencies": {
