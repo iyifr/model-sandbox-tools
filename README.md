@@ -1,28 +1,30 @@
 # Model Sandbox Tools (MST)
-
-Give AI agents isolated sandboxes to work with documents. MST wraps [microsandbox](https://github.com/superradcompany/microsandbox) and [@openai/agents](https://github.com/openai/openai-agents-js) so your agent can run Python scripts, read/write files, and execute shell commands — all inside a locked-down container.
+Microsandbox plugin for OpenAI Agents SDK. Give agents built with Agents SDK isolated sandboxes to do work. 
+MST wraps [microsandbox](https://github.com/superradcompany/microsandbox) and [@openai/agents](https://github.com/openai/openai-agents-js) so your agent can run Python scripts, read/write files, and execute shell commands, all inside a locked-down container.
 
 ## Packages
 
 | Package | Description |
 |---|---|
 | `mst-core` | Sandbox lifecycle, workspace I/O, file change detection |
-| `@mst/openai-agents` | Drop-in `run()` replacement + sandbox tools for `@openai/agents` |
+| `@iyifr/openai-agents-msb` | Drop-in `run()` replacement + sandbox tools for `@openai/agents` |
 
 ## Install
 
 ```bash
-npm install mst-core @mst/openai-agents @openai/agents microsandbox
+npm install mst-core @iyifr/openai-agents-msb @openai/agents microsandbox zod
 ```
+
+`@openai/agents` and `zod` are peer dependencies of `@iyifr/openai-agents-msb`.
 
 ## Quick Start
 
-The simplest way to use MST — send files into a sandbox, let the agent work, get files back:
+The simplest way to use MST -> send files into a sandbox, let the agent work, get files back:
 
 ```ts
 import fs from 'node:fs'
 import { Agent } from '@openai/agents'
-import { run, sandboxRun, sandboxReadFile, sandboxWriteFile, sandboxExec } from '@mst/openai-agents'
+import { run, sandboxRun, sandboxReadFile, sandboxWriteFile, sandboxExec } from '@iyifr/openai-agents-msb'
 import { WorkspaceContext } from 'mst-core'
 
 const agent = new Agent({
@@ -58,7 +60,6 @@ MST automatically:
 - Tears down the sandbox
 
 ## Sandbox Tools
-
 MST provides five tools that agents can use inside the sandbox:
 
 | Tool | What it does |
@@ -202,13 +203,13 @@ pnpm demo:law-firm:cli
 │  └────────────┬──────────────────────────────┘  │
 │               │                                  │
 │  ┌────────────▼──────────────────────────────┐  │
-│  │  @mst/openai-agents                       │  │
+│  │  @iyifr/openai-agents-msb                 │  │
 │  │  run() · sandboxRun · sandboxExec · ...   │  │
 │  └────────────┬──────────────────────────────┘  │
 │               │                                  │
 │  ┌────────────▼──────────────────────────────┐  │
 │  │  mst-core                                 │  │
-│  │  WorkspaceContext · sandbox lifecycle      │  │
+│  │  WorkspaceContext · sandbox lifecycle     │  │
 │  │  file snapshots · change detection        │  │
 │  └────────────┬──────────────────────────────┘  │
 │               │                                  │

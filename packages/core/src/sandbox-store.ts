@@ -18,7 +18,7 @@ export function getActiveSandbox(): Sandbox {
   const sb = sandboxStore.getStore() ?? streamSandbox
   if (!sb) {
     throw new Error(
-      '[mst] No active sandbox. Wrap your run() call with @mst/openai-agents run()',
+      '[mst] No active sandbox. Wrap your run() call with @iyifr/openai-agents-msb run()',
     )
   }
   return sb

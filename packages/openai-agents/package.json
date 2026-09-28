@@ -1,6 +1,27 @@
 {
-  "name": "@mst/openai-agents",
-  "version": "0.0.1",
+  "name": "@iyifr/openai-agents-msb",
+  "version": "0.1.0",
+  "description": "Drop-in run() replacement and sandbox tools that give @openai/agents agents an isolated microsandbox workspace.",
+  "license": "MIT",
+  "author": "iyifr",
+  "homepage": "https://github.com/iyifr/model-sandbox-tools#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iyifr/model-sandbox-tools.git",
+    "directory": "packages/openai-agents"
+  },
+  "bugs": {
+    "url": "https://github.com/iyifr/model-sandbox-tools/issues"
+  },
+  "keywords": [
+    "openai-agents",
+    "microsandbox",
+    "sandbox",
+    "ai-agents",
+    "llm",
+    "tools",
+    "code-interpreter"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -10,15 +31,25 @@
       "import": "./dist/index.js"
     }
   },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "prepublishOnly": "tsc"
   },
   "dependencies": {
-    "mst-core": "^0.0.1",
-    "microsandbox": "^0.6.1"
+    "mst-core": "workspace:^",
+    "microsandbox": ">=0.6.1 <0.8.0"
   },
   "peerDependencies": {
-    "@openai/agents": "^0.12.0",
+    "@openai/agents": ">=0.12.0 <1.0.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {

@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@clack/prompts": "^0.11.0",
-    "@mst/openai-agents": "workspace:*",
+    "@iyifr/openai-agents-msb": "workspace:*",
     "@openai/agents": "^0.12.0",
     "@opentui/core": "^0.4.2",
     "mst-core": "workspace:*",

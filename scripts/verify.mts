@@ -35,7 +35,7 @@ const ctx = WorkspaceContext({ inputFiles: [] })
 if (typeof ctx === 'object' && ctx !== null) ok('WorkspaceContext')
 else fail('WorkspaceContext', ctx)
 
-// --- @mst/openai-agents (requires microsandbox native bindings) ---
+// --- @iyifr/openai-agents-msb (requires microsandbox native bindings) ---
 if (!microsandboxSupported) {
   console.log(
     `  skip: openai-agents runtime tests (microsandbox unsupported on ${process.platform}-${process.arch})`,

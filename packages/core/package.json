@@ -1,6 +1,26 @@
 {
   "name": "mst-core",
-  "version": "0.0.1",
+  "version": "0.1.0",
+  "description": "Sandbox lifecycle, workspace I/O and file change detection for Model Sandbox Tools (MST).",
+  "license": "MIT",
+  "author": "iyifr",
+  "homepage": "https://github.com/iyifr/model-sandbox-tools#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iyifr/model-sandbox-tools.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/iyifr/model-sandbox-tools/issues"
+  },
+  "keywords": [
+    "microsandbox",
+    "sandbox",
+    "ai-agents",
+    "llm",
+    "workspace",
+    "code-interpreter"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -10,11 +30,21 @@
       "import": "./dist/index.js"
     }
   },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "prepublishOnly": "tsc"
   },
   "dependencies": {
-    "microsandbox": "^0.6.1"
+    "microsandbox": ">=0.6.1 <0.8.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
