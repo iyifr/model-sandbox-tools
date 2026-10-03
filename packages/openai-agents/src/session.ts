@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises'
 import { Sandbox, SandboxNotFoundError } from 'microsandbox'
-import { assertSafeFilename, SandboxSetupError } from 'openai-microsandbox-core'
+import { assertSafeFilename, SandboxSetupError } from './core/index.js'
 import { resolveWorkspaceRoot, sessionDir } from './host-workspace.js'
 
 /** Thrown when a follow-up turn (`skipInputSeed: true`) targets a session that no longer exists. */

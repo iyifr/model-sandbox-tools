@@ -1,6 +1,6 @@
 {
   "name": "openai-agents-msb",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Drop-in run() replacement and sandbox tools that give @openai/agents agents an isolated microsandbox workspace.",
   "license": "MIT",
   "author": "iyifr",
@@ -29,6 +29,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js"
     }
   },
   "files": [
@@ -46,7 +50,6 @@
     "prepublishOnly": "tsc"
   },
   "dependencies": {
-    "openai-microsandbox-core": "workspace:^",
     "microsandbox": ">=0.7.0 <0.8.0"
   },
   "peerDependencies": {

@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { run } from 'openai-agents-msb'
-import { WorkspaceContext } from 'openai-microsandbox-core'
+import { WorkspaceContext } from 'openai-agents-msb/core'
 
 import { createLawyerAgent } from './lawyer-agent.js'
 

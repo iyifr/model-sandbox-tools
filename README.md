@@ -2,20 +2,22 @@
 Microsandbox plugin for OpenAI Agents SDK. Give your agents isolated sandboxes for writing code.
 MST wraps [microsandbox](https://github.com/superradcompany/microsandbox) and [@openai/agents](https://github.com/openai/openai-agents-js) so your agent can run Python scripts, read/write files, and execute shell commands, all inside a locked-down container.
 
-## Packages
+## Package
 
-| Package | Description |
+One package, two entry points:
+
+| Import | Description |
 |---|---|
-| `openai-microsandbox-core` | Sandbox lifecycle, workspace I/O, file change detection |
-| `openai-agents-msb` | Drop-in `run()` replacement + sandbox tools for `@openai/agents` |
+| `openai-agents-msb` | Drop-in OpenAI agents `run()` replacement with sandbox tools |
+| `openai-agents-msb/core` | `WorkspaceContext`, workspace types, and sandbox primitives |
 
 ## Install
 
 ```bash
-npm install openai-microsandbox-core openai-agents-msb @openai/agents microsandbox zod
+npm install openai-agents-msb @openai/agents microsandbox zod
 ```
 
-`@openai/agents` and `zod` are peer dependencies of `openai-agents-msb`.
+`@openai/agents` and `zod` are peer dependencies.
 
 ## Quick Start
 
@@ -25,7 +27,7 @@ The simplest way to use MST -> send files into a sandbox, let the agent work, ge
 import fs from 'node:fs'
 import { Agent } from '@openai/agents'
 import { run, sandboxRun, sandboxReadFile, sandboxWriteFile, sandboxExec } from 'openai-agents-msb'
-import { WorkspaceContext } from 'openai-microsandbox-core'
+import { WorkspaceContext } from 'openai-agents-msb/core'
 
 const agent = new Agent({
   name: 'doc-agent',
@@ -236,7 +238,7 @@ await endSession(sandboxName, { workspaceRoot })
 // Or keep the files (e.g. to archive them) and only delete the VM
 await endSession(sandboxName, { workspaceRoot, keepFiles: true })
 
-// Retention policy: end sessions idle for 30 days
+// end sessions idle for 30 days
 for (const s of await listSessions({ workspaceRoot })) {
   if (Date.now() - s.lastUsed.getTime() > 30 * 24 * 3600 * 1000) await endSession(s.name, { workspaceRoot })
 }
@@ -247,53 +249,6 @@ for (const s of await listSessions({ workspaceRoot })) {
 - Pass the same `workspaceRoot` to every turn of a session and to `listSessions()` / `endSession()`.
 - Starting a session again with `skipInputSeed: false` clears its workspace, so copy out files kept with `keepFiles` first.
 
-## Tracing
-
-MST leaves `@openai/agents` tracing alone. If you use a model provider without an OpenAI API key, turn it off yourself:
-
-```ts
-import { setTracingDisabled } from '@openai/agents'
-setTracingDisabled(true)
-```
-
-## Example: Law Firm Document Agent
-
-The `examples/law-firm/` directory contains a full working demo — a legal document assistant that processes `.docx` templates and case notes inside a sandbox, with a terminal UI built on [OpenTUI](https://opentui.com/).
-
-```bash
-# Run the headless version
-pnpm demo:law-firm
-
-# Run the interactive TUI
-pnpm demo:law-firm:cli
-```
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────┐
-│  Your App                                       │
-│  ┌───────────────────────────────────────────┐  │
-│  │  @openai/agents  ←  Agent + tools         │  │
-│  └────────────┬──────────────────────────────┘  │
-│               │                                  │
-│  ┌────────────▼──────────────────────────────┐  │
-│  │  openai-agents-msb                        │  │
-│  │  run() · sandboxRun · sandboxExec · ...   │  │
-│  └────────────┬──────────────────────────────┘  │
-│               │                                  │
-│  ┌────────────▼──────────────────────────────┐  │
-│  │  openai-microsandbox-core                 │  │
-│  │  WorkspaceContext · sandbox lifecycle     │  │
-│  │  file snapshots · change detection        │  │
-│  └────────────┬──────────────────────────────┘  │
-│               │                                  │
-│  ┌────────────▼──────────────────────────────┐  │
-│  │  microsandbox                             │  │
-│  │  Isolated container · fs · shell · net    │  │
-│  └───────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────┘
-```
 
 ## License
 

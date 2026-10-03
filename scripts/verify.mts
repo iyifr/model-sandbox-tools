@@ -1,4 +1,4 @@
-import { formatYaml, assertSafeFilename, WorkspaceContext } from '../packages/core/dist/index.js'
+import { formatYaml, assertSafeFilename, WorkspaceContext } from '../packages/openai-agents/dist/core/index.js'
 
 const microsandboxSupported =
   (process.platform === 'darwin' && process.arch === 'arm64') ||
@@ -19,7 +19,7 @@ function fail(name: string, err: unknown) {
   console.error(`  FAIL: ${name}`, err)
 }
 
-// --- openai-microsandbox-core (always) ---
+// --- openai-agents-msb/core (always) ---
 const yaml = formatYaml({ exit_code: 0, stdout: 'hello', stderr: '' })
 if (yaml.includes('exit_code: 0') && yaml.includes('hello')) ok('formatYaml')
 else fail('formatYaml', yaml)

@@ -7,10 +7,13 @@ Part of [Model Sandbox Tools (MST)](https://github.com/iyifr/model-sandbox-tools
 ## Install
 
 ```bash
-npm install openai-microsandbox-core openai-agents-msb @openai/agents microsandbox zod
+npm install openai-agents-msb @openai/agents microsandbox zod
 ```
 
 `@openai/agents` and `zod` are peer dependencies.
+
+Two entry points: `openai-agents-msb` for `run()` and the tools, and `openai-agents-msb/core` for
+`WorkspaceContext` and the workspace types.
 
 ## Quick start
 
@@ -18,7 +21,7 @@ npm install openai-microsandbox-core openai-agents-msb @openai/agents microsandb
 import fs from 'node:fs'
 import { Agent } from '@openai/agents'
 import { run, sandboxRun, sandboxReadFile, sandboxWriteFile, sandboxExec } from 'openai-agents-msb'
-import { WorkspaceContext } from 'openai-microsandbox-core'
+import { WorkspaceContext } from 'openai-agents-msb/core'
 
 const agent = new Agent({
   name: 'doc-agent',

@@ -1,5 +1,5 @@
 import { tool } from '@openai/agents'
-import { MST_TOOL, SandboxSetupError } from 'openai-microsandbox-core'
+import { MST_TOOL, SandboxSetupError } from '../core/index.js'
 
 /**
  * Like tool(), but sandbox setup failures fail the run instead of being shown to
