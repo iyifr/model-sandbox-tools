@@ -19,6 +19,9 @@ npm install openai-agents-msb @openai/agents microsandbox zod
 
 `@openai/agents` and `zod` are peer dependencies.
 
+**Requirements:** Node.js 22+, microsandbox 0.7.x, and `@openai/agents` 0.12–0.18. microsandbox ships binaries for
+macOS (Apple Silicon), Linux (x64, arm64) and Windows (x64, arm64).
+
 ## Quick Start
 
 The simplest way to use MST -> send files into a sandbox, let the agent work, get files back:
@@ -55,10 +58,9 @@ const result = await run(
 ```
 
 MST automatically:
-- Spins up an isolated microsandbox container
-- Seeds `/workspace/` with your input files
-- Runs the agent (which can call sandbox tools)
-- Diffs the workspace after completion and calls `onFileOutput` for new/changed files
+- Runs the agent
+- On the first sandbox tool call, starts an isolated microsandbox VM and seeds `/workspace/` with your input files
+- After the run, calls `onFileOutput` for new and changed files
 - Tears down the sandbox
 
 The sandbox VM starts on the first sandbox tool call, so turns where the agent only chats boot nothing.
@@ -74,7 +76,7 @@ MST provides five tools that agents can use inside the sandbox:
 | Tool | What it does |
 |---|---|
 | `sandboxRun()` | Run a script (Python, etc.) inside the sandbox |
-| `sandboxExec({ timeoutSecs? })` | Run a shell command (`pip install`, `ls`, etc.). Killed after `timeoutSecs` (default 600) |
+| `sandboxExec({ timeoutSecs?, maxOutputBytes? })` | Run a shell command (`pip install`, `ls`, etc.). Killed after `timeoutSecs` (default 600); output capped at `maxOutputBytes` (default 32768) |
 | `sandboxReadFile()` | Read a text file from the sandbox filesystem |
 | `sandboxWriteFile()` | Write a file to the sandbox filesystem |
 | `sandboxListFiles()` | List files in the sandbox workspace |
