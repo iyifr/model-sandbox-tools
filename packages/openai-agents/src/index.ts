@@ -1,9 +1,5 @@
-import { setTracingDisabled } from '@openai/agents'
-
-// MST uses custom model providers (e.g. Gemma) without an OpenAI API key.
-setTracingDisabled(true)
-
 export { run } from './run.js'
+export type { MstNonStreamRunOptions, MstStreamRunOptions } from './run.js'
 export { endSession, listSessions, SessionNotFoundError } from './session.js'
 export type { SessionInfo, SessionOptions } from './session.js'
 export { sandboxRun } from './tools/sandbox-run.js'

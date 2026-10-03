@@ -41,7 +41,9 @@ const result = await run(
 )
 ```
 
-`run()` spins up the sandbox, seeds `/workspace/`, runs the agent, diffs the workspace, emits changed files, and tears the sandbox down.
+`run()` has the same signatures as `run()` from `@openai/agents`. On the first sandbox tool call it starts the sandbox
+and seeds `/workspace/`; after the run it emits changed files and tears the sandbox down. MST does not change
+`@openai/agents` tracing; call `setTracingDisabled(true)` yourself if your model provider has no OpenAI API key.
 
 ## Tools
 
@@ -53,7 +55,7 @@ const result = await run(
 | `sandboxWriteFile()` | Write a file to the sandbox filesystem |
 | `sandboxListFiles()` | List files in the sandbox workspace |
 
-Streaming, persistent sandboxes, network allowlists and scoped secrets are covered in the [main README](https://github.com/iyifr/model-sandbox-tools#readme).
+Streaming, persistent sessions (`endSession`, `listSessions`), network allowlists and scoped secrets are covered in the [main README](https://github.com/iyifr/model-sandbox-tools#readme).
 
 ## License
 

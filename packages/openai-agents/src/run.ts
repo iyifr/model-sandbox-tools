@@ -1,5 +1,14 @@
 import fs from 'node:fs/promises'
-import { run as openaiRun, type Agent } from '@openai/agents'
+import { run as openaiRun } from '@openai/agents'
+import type {
+  Agent,
+  AgentInputItem,
+  NonStreamRunOptions,
+  RunResult,
+  RunState,
+  StreamedRunResult,
+  StreamRunOptions,
+} from '@openai/agents'
 
 import { Sandbox, SandboxNotFoundError, Volume } from 'microsandbox'
 import type { Sandbox as SandboxInstance } from 'microsandbox'
@@ -20,9 +29,23 @@ import {
 import type { WorkspaceSnapshot } from './host-workspace.js'
 import { SessionNotFoundError, acquireSession, assertSessionName } from './session.js'
 
-type RunOptions = Record<string, unknown> & {
-  [WORKSPACE_CTX]?: WorkspaceContextOptions
-}
+type WorkspaceOption = { [WORKSPACE_CTX]?: WorkspaceContextOptions }
+
+/** `@openai/agents` run options plus the workspace set by `WorkspaceContext()`. */
+export type MstNonStreamRunOptions<
+  TContext = undefined,
+  TAgent extends Agent<any, any> = Agent<any, any>,
+> = NonStreamRunOptions<TContext, TAgent> & WorkspaceOption
+
+export type MstStreamRunOptions<
+  TContext = undefined,
+  TAgent extends Agent<any, any> = Agent<any, any>,
+> = StreamRunOptions<TContext, TAgent> & WorkspaceOption
+
+type RunInput<TContext, TAgent extends Agent<any, any>> =
+  | string
+  | AgentInputItem[]
+  | RunState<TContext, TAgent>
 
 function attachStreamSandboxLifecycle(
   result: { completed: Promise<void> },
@@ -36,11 +59,22 @@ function attachStreamSandboxLifecycle(
   Object.defineProperty(result, 'completed', { value: completed })
 }
 
+/** Drop-in for `run()` from `@openai/agents` that gives the agent's sandbox tools a microsandbox VM. */
+export function run<TAgent extends Agent<any, any>, TContext = undefined>(
+  agent: TAgent,
+  input: RunInput<TContext, TAgent>,
+  options?: MstNonStreamRunOptions<TContext, TAgent>,
+): Promise<RunResult<TContext, TAgent>>
+export function run<TAgent extends Agent<any, any>, TContext = undefined>(
+  agent: TAgent,
+  input: RunInput<TContext, TAgent>,
+  options?: MstStreamRunOptions<TContext, TAgent>,
+): Promise<StreamedRunResult<TContext, TAgent>>
 export async function run(
   agent: Agent<any, any>,
-  input: string,
-  options?: RunOptions,
-) {
+  input: RunInput<any, Agent<any, any>>,
+  options?: MstNonStreamRunOptions<any> | MstStreamRunOptions<any>,
+): Promise<RunResult<any, Agent<any, any>> | StreamedRunResult<any, Agent<any, any>>> {
   if (options != null && 'sandbox' in options && options.sandbox !== undefined) {
     throw new Error(
       '[mst] `options.sandbox` is reserved by @openai/agents for its built-in sandbox ' +

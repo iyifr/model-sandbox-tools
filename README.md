@@ -63,6 +63,9 @@ The sandbox VM starts on the first sandbox tool call, so turns where the agent o
 Agents reached through handoffs or `agent.asTool()` share the same sandbox. Tools without a `sandboxRun()`
 anywhere in the agent graph use a default `python:3.12-slim` image.
 
+`run()` has the same signatures as `run()` from `@openai/agents`: it accepts a string, `result.history` or a `RunState`,
+types `finalOutput` from the agent's `outputType`, and returns `StreamedRunResult` only when you pass `stream: true`.
+
 ## Sandbox Tools
 MST provides five tools that agents can use inside the sandbox:
 
@@ -175,11 +178,23 @@ Hosts from `secrets[].host` and PyPI (when `packages` is set) are added to the a
 Domain rules and secrets make microsandbox terminate TLS on port 443 so it can match hostnames and substitute
 secrets; code in the sandbox only ever sees a placeholder, never the real secret value.
 
+Network settings are validated by microsandbox before the model runs, so an invalid host name or CIDR fails `run()` immediately.
+
+> **Secrets and echoing hosts.** The real value is substituted into requests to `secrets[].host`. If that host
+> reflects request data back (echo endpoints, error messages that quote headers), the real value comes back into
+> the sandbox and can reach the model. Only scope secrets to APIs you trust not to echo them.
+
 ## Persistent Sandboxes
 
-Keep the sandbox alive across multiple `run()` calls in a conversation:
+Keep the sandbox alive across multiple `run()` calls in a conversation. This needs `persist: true` on
+`sandboxRun()` and a `sandboxName` per conversation:
 
 ```ts
+const agent = new Agent({
+  name: 'doc-agent',
+  tools: [sandboxRun({ image: 'python:3.12-slim', interpreter: 'python3', persist: true }), sandboxExec()],
+})
+
 const workspace = {
   sandboxName: 'session-abc',
   inputFiles: [{ name: 'doc.docx', data: docxBuffer }],
@@ -231,6 +246,15 @@ for (const s of await listSessions({ workspaceRoot })) {
 - `listSessions()` returns `{ name, workspaceDir, sandbox: 'running' | 'stopped' | 'missing', lastUsed }`, newest first.
 - Pass the same `workspaceRoot` to every turn of a session and to `listSessions()` / `endSession()`.
 - Starting a session again with `skipInputSeed: false` clears its workspace, so copy out files kept with `keepFiles` first.
+
+## Tracing
+
+MST leaves `@openai/agents` tracing alone. If you use a model provider without an OpenAI API key, turn it off yourself:
+
+```ts
+import { setTracingDisabled } from '@openai/agents'
+setTracingDisabled(true)
+```
 
 ## Example: Law Firm Document Agent
 
