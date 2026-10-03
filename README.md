@@ -1,256 +1,122 @@
-# Model Sandbox Tools (MST)
-Microsandbox plugin for OpenAI Agents SDK. Give your agents isolated sandboxes for writing code.
-MST wraps [microsandbox](https://github.com/superradcompany/microsandbox) and [@openai/agents](https://github.com/openai/openai-agents-js) so your agent can run Python scripts, read/write files, and execute shell commands, all inside a locked-down container.
+# openai-agents-msb
 
-## Package
+**Give [OpenAI Agents](https://github.com/openai/openai-agents-js) an isolated [microsandbox](https://github.com/superradcompany/microsandbox) VM to run code and edit files in.**
 
-One package, two entry points:
+- **Drop-in `run()`**: Same signatures as `@openai/agents`. Swap the import, keep your agent.
+- **Files in, files out**: Seed `/workspace`, get every new or changed file back after the run.
+- **Lazy VMs**: The sandbox boots on the first tool call. Chat-only turns cost nothing.
+- **Locked-down network**: No network by default; allow the public internet or specific hosts.
+- **Secrets that stay out**: Code in the VM sees a placeholder, never the real key.
+- **Persistent sessions**: Keep one VM per conversation across turns.
 
-| Import | Description |
-|---|---|
-| `openai-agents-msb` | Drop-in OpenAI agents `run()` replacement with sandbox tools |
-| `openai-agents-msb/core` | `WorkspaceContext`, workspace types, and sandbox primitives |
+## Getting Started
 
-## Install
-
-```bash
-npm install openai-agents-msb @openai/agents microsandbox zod
+```sh
+npm i openai-agents-msb @openai/agents microsandbox zod
 ```
 
-`@openai/agents` and `zod` are peer dependencies.
-
-**Requirements:** Node.js 22+, microsandbox 0.7.x, and `@openai/agents` 0.12–0.18. microsandbox ships binaries for
-macOS (Apple Silicon), Linux (x64, arm64) and Windows (x64, arm64).
-
-## Quick Start
-
-The simplest way to use MST -> send files into a sandbox, let the agent work, get files back:
+> **Requirements**: Node.js 22+ on macOS (Apple Silicon), Linux (KVM) or Windows (WHP).
 
 ```ts
 import fs from 'node:fs'
 import { Agent } from '@openai/agents'
-import { run, sandboxRun, sandboxReadFile, sandboxWriteFile, sandboxExec } from 'openai-agents-msb'
+import { run, sandboxRun, sandboxExec, sandboxReadFile, sandboxWriteFile } from 'openai-agents-msb'
 import { WorkspaceContext } from 'openai-agents-msb/core'
 
 const agent = new Agent({
   name: 'doc-agent',
-  instructions: 'You work with files in /workspace/. Use sandbox tools to read, write, and run code.',
+  instructions: 'Files are in /workspace. Use the sandbox tools.',
   tools: [
     sandboxRun({ image: 'python:3.12-slim', interpreter: 'python3' }),
+    sandboxExec(),
     sandboxReadFile(),
     sandboxWriteFile(),
-    sandboxExec(),
   ],
 })
 
-const result = await run(
-  agent,
-  'Convert the spreadsheet to a summary PDF',
-  WorkspaceContext({
-    inputFiles: [
-      { name: 'data.xlsx', data: fs.readFileSync('./data.xlsx') },
-    ],
-    onFileOutput: (payload) => {
-      fs.copyFileSync(payload.path, `./output/${payload.file_name}`)
-    },
-  }),
-)
+await run(agent, 'Summarize data.xlsx as a PDF', WorkspaceContext({
+  inputFiles: [{ name: 'data.xlsx', data: fs.readFileSync('data.xlsx') }],
+  onFileOutput: (file) => fs.copyFileSync(file.path, `out/${file.file_name}`),
+}))
 ```
 
-MST automatically:
-- Runs the agent
-- On the first sandbox tool call, starts an isolated microsandbox VM and seeds `/workspace/` with your input files
-- After the run, calls `onFileOutput` for new and changed files
-- Tears down the sandbox
+## Tools
 
-The sandbox VM starts on the first sandbox tool call, so turns where the agent only chats boot nothing.
-Agents reached through handoffs or `agent.asTool()` share the same sandbox. Tools without a `sandboxRun()`
-anywhere in the agent graph use a default `python:3.12-slim` image.
-
-`run()` has the same signatures as `run()` from `@openai/agents`: it accepts a string, `result.history` or a `RunState`,
-types `finalOutput` from the agent's `outputType`, and returns `StreamedRunResult` only when you pass `stream: true`.
-
-## Sandbox Tools
-MST provides five tools that agents can use inside the sandbox:
-
-| Tool | What it does |
+| Tool | Does |
 |---|---|
-| `sandboxRun()` | Run a script (Python, etc.) inside the sandbox |
-| `sandboxExec({ timeoutSecs?, maxOutputBytes? })` | Run a shell command (`pip install`, `ls`, etc.). Killed after `timeoutSecs` (default 600); output capped at `maxOutputBytes` (default 32768) |
-| `sandboxReadFile()` | Read a text file from the sandbox filesystem |
-| `sandboxWriteFile()` | Write a file to the sandbox filesystem |
-| `sandboxListFiles()` | List files in the sandbox workspace |
+| `sandboxRun(options)` | Runs a script; configures the sandbox |
+| `sandboxExec({ timeoutSecs?, maxOutputBytes? })` | Runs a shell command (default timeout 600s) |
+| `sandboxReadFile()` | Reads a text file |
+| `sandboxWriteFile()` | Writes a text file |
+| `sandboxListFiles()` | Lists a directory |
 
-### Configuring `sandboxRun`
+<details>
+<summary><em>All <code>sandboxRun</code> options →</em></summary>
 
 ```ts
 sandboxRun({
-  image: 'python:3.12-slim',   // Container image
-  interpreter: 'python3',       // Script interpreter
-  network: 'public',             // 'none' | 'public' | { allow: [...] } — see Network Security
-  timeoutSecs: 120,              // Script timeout
-  maxOutputBytes: 32768,         // stdout/stderr cap sent to the model (keeps head + tail)
-  persist: true,                 // Keep sandbox alive between turns
-  packages: ['python-docx'],    // Auto-install via pip
-  memory: 512,                  // Memory limit (MB)
-  secrets: [{                   // Inject secrets scoped to specific hosts
-    env: 'API_KEY',
-    value: process.env.API_KEY!,
-    host: 'api.example.com',
-  }],
+  image: 'python:3.12-slim',
+  interpreter: 'python3',
+  network: 'public',           // see Network
+  packages: ['python-docx'],   // pip install on start
+  timeoutSecs: 120,            // per script, default 30
+  maxOutputBytes: 32768,       // stdout/stderr sent to the model
+  memory: 512,                 // MB
+  cpus: 1,
+  persist: true,               // see Sessions
+  secrets: [{ env: 'API_KEY', value: process.env.API_KEY!, host: 'api.example.com' }],
+  env: { TZ: 'UTC' },
 })
 ```
 
-## Workspace Context
+Handoffs and `agent.asTool()` agents share the run's sandbox. Tools with no `sandboxRun()` anywhere use `python:3.12-slim`.
 
-`WorkspaceContext()` configures how files flow in and out of the sandbox.
-`/workspace` is a host directory mounted into the VM, so files the agent wrote are still delivered if the VM crashes.
-Persistent sessions keep theirs in `~/.mst/workspaces/<sandboxName>`; other runs use a temp directory that is deleted afterwards.
+</details>
+
+## Files
+
+`onFileOutput` fires for each new or changed file after the run. `file_name` is relative to `/workspace`;
+`path` is valid during the callback; `buffer` is omitted for files over 2 GiB.
 
 ```ts
 WorkspaceContext({
-  // Files to seed into /workspace/ before the agent runs
-  inputFiles: [
-    { name: 'brief.docx', data: docxBuffer },
-    new File([pdfBytes], 'contract.pdf'),
-  ],
-
-  // Called for each new or modified file after the agent finishes.
-  // file_name is relative to /workspace, e.g. 'reports/q1/summary.md'.
-  // payload.path is only valid during this callback; payload.buffer is omitted for files of 2 GiB or more.
-  onFileOutput: (payload) => {
-    console.log(`${payload.file_name} changed`)
-    fs.copyFileSync(payload.path, payload.file_name)
-  },
-
-  // Called with the full file tree after each run (useful for UI)
-  onWorkspaceSnapshot: (paths) => {
-    console.log('Workspace:', paths)
-  },
-
-  // For persistent sandboxes: reuse across multiple turns
-  sandboxName: 'my-session',
-  skipInputSeed: true,  // Don't re-upload files on follow-up turns
+  inputFiles: [{ name: 'brief.docx', data }, new File([pdf], 'contract.pdf')],
+  onFileOutput: (file) => fs.copyFileSync(file.path, file.file_name),
+  onWorkspaceSnapshot: (paths) => console.log(paths),
 })
 ```
 
 ## Streaming
 
-MST's `run()` supports `@openai/agents` streaming. Pass `stream: true` and the sandbox stays alive until the stream completes:
-
 ```ts
-const result = await run(agent, 'Draft a legal brief', {
-  stream: true,
-  ...WorkspaceContext({ inputFiles, onFileOutput }),
-})
-
-for await (const event of result) {
-  if (event.type === 'raw_model_stream_event') {
-    const data = event.data as { type?: string; delta?: string }
-    if (data.type === 'output_text_delta') {
-      process.stdout.write(data.delta ?? '')
-    }
-  }
-}
-
-await result.completed
+const result = await run(agent, 'Draft a brief', { stream: true, ...WorkspaceContext({ onFileOutput }) })
+for await (const event of result) { /* ... */ }
+await result.completed   // outputs delivered, sandbox stopped
 ```
 
-## Network Security
-
-Control what the sandbox can access:
+## Network
 
 ```ts
-// No network at all (the default when no packages/secrets are set); `false` also works
-sandboxRun({ network: 'none', ... })
-
-// Public internet only — LAN, host and cloud metadata addresses stay blocked; `true` also works
-sandboxRun({ network: 'public', ... })
-
-// Allowlist: exact domains, wildcards (also match the apex), IPs or CIDRs
-sandboxRun({
-  network: { allow: ['api.example.com', '*.githubusercontent.com', '10.0.0.0/8'] },
-  ...
-})
-
-// Full control: pass a microsandbox NetworkPolicy straight through
-import { NetworkPolicy } from 'microsandbox'
-sandboxRun({ network: NetworkPolicy.fromProfiles(['public']), ... })
+sandboxRun({ network: 'none' })                                // default
+sandboxRun({ network: 'public' })                              // internet, not LAN or cloud metadata
+sandboxRun({ network: { allow: ['api.example.com', '*.github.com', '10.0.0.0/8'] } })
 ```
 
-Hosts from `secrets[].host` and PyPI (when `packages` is set) are added to the allowlist automatically.
-Domain rules and secrets make microsandbox terminate TLS on port 443 so it can match hostnames and substitute
-secrets; code in the sandbox only ever sees a placeholder, never the real secret value.
+`secrets` hosts and PyPI (for `packages`) are allowed automatically. A host that echoes request headers back can leak a secret's real value, so only scope secrets to APIs you trust.
 
-Network settings are validated by microsandbox before the model runs, so an invalid host name or CIDR fails `run()` immediately.
+## Sessions
 
-> **Secrets and echoing hosts.** The real value is substituted into requests to `secrets[].host`. If that host
-> reflects request data back (echo endpoints, error messages that quote headers), the real value comes back into
-> the sandbox and can reach the model. Only scope secrets to APIs you trust not to echo them.
-
-## Persistent Sandboxes
-
-Keep the sandbox alive across multiple `run()` calls in a conversation. This needs `persist: true` on
-`sandboxRun()` and a `sandboxName` per conversation:
+Set `persist: true` on `sandboxRun()` and pass a `sandboxName` to keep one VM per conversation.
 
 ```ts
-const agent = new Agent({
-  name: 'doc-agent',
-  tools: [sandboxRun({ image: 'python:3.12-slim', interpreter: 'python3', persist: true }), sandboxExec()],
-})
+await run(agent, 'Draft it', WorkspaceContext({ sandboxName: 'case-42', inputFiles }))
+await run(agent, 'Now shorten it', WorkspaceContext({ sandboxName: 'case-42', skipInputSeed: true }))
 
-const workspace = {
-  sandboxName: 'session-abc',
-  inputFiles: [{ name: 'doc.docx', data: docxBuffer }],
-  onFileOutput: (p) => { /* ... */ },
-}
-
-// First turn — seeds files
-await run(agent, 'Summarize the document', WorkspaceContext(workspace))
-
-// Follow-up turns — reuses the same sandbox, skips re-uploading
-await run(agent, 'Now translate to Spanish', WorkspaceContext({
-  ...workspace,
-  skipInputSeed: true,
-}))
+await endSession('case-42')        // delete the VM and its files
+await listSessions()               // [{ name, sandbox, lastUsed, workspaceDir }]
 ```
 
-Concurrent `run()` calls with the same `sandboxName` in one process are queued: each waits for the previous one to finish, so a second turn can never replace a sandbox that is still in use.
-
-## Session Lifecycle
-
-Persistent sessions keep a VM and a workspace folder on disk until you end them.
-
-```ts
-import { run, endSession, listSessions, SessionNotFoundError } from 'openai-agents-msb'
-
-const workspaceRoot = '/secure/tenant-42'   // optional; default ~/.mst/workspaces
-
-// Follow-up turn: re-seed if the session was deleted in the meantime
-try {
-  await run(agent, message, WorkspaceContext({ sandboxName, workspaceRoot, skipInputSeed: true, onFileOutput }))
-} catch (err) {
-  if (!(err instanceof SessionNotFoundError)) throw err
-  await run(agent, message, WorkspaceContext({ sandboxName, workspaceRoot, inputFiles, onFileOutput }))
-}
-
-// Conversation closed: delete the VM and the files
-await endSession(sandboxName, { workspaceRoot })
-
-// Or keep the files (e.g. to archive them) and only delete the VM
-await endSession(sandboxName, { workspaceRoot, keepFiles: true })
-
-// end sessions idle for 30 days
-for (const s of await listSessions({ workspaceRoot })) {
-  if (Date.now() - s.lastUsed.getTime() > 30 * 24 * 3600 * 1000) await endSession(s.name, { workspaceRoot })
-}
-```
-
-- `endSession()` waits for any in-flight `run()` on that session, and is a no-op for unknown names.
-- `listSessions()` returns `{ name, workspaceDir, sandbox: 'running' | 'stopped' | 'missing', lastUsed }`, newest first.
-- Pass the same `workspaceRoot` to every turn of a session and to `listSessions()` / `endSession()`.
-- Starting a session again with `skipInputSeed: false` clears its workspace, so copy out files kept with `keepFiles` first.
-
+A follow-up on a deleted session throws `SessionNotFoundError`. Runs on the same session are queued.
 
 ## License
 

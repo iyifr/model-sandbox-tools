@@ -1,64 +1,122 @@
 # openai-agents-msb
 
-Give [`@openai/agents`](https://github.com/openai/openai-agents-js) agents an isolated [microsandbox](https://github.com/superradcompany/microsandbox) workspace: a drop-in `run()` replacement plus five sandbox tools.
+**Give [OpenAI Agents](https://github.com/openai/openai-agents-js) an isolated [microsandbox](https://github.com/superradcompany/microsandbox) VM to run code and edit files in.**
 
-Part of [Model Sandbox Tools (MST)](https://github.com/iyifr/model-sandbox-tools).
+- **Drop-in `run()`**: Same signatures as `@openai/agents`. Swap the import, keep your agent.
+- **Files in, files out**: Seed `/workspace`, get every new or changed file back after the run.
+- **Lazy VMs**: The sandbox boots on the first tool call. Chat-only turns cost nothing.
+- **Locked-down network**: No network by default; allow the public internet or specific hosts.
+- **Secrets that stay out**: Code in the VM sees a placeholder, never the real key.
+- **Persistent sessions**: Keep one VM per conversation across turns.
 
-## Install
+## Getting Started
 
-```bash
-npm install openai-agents-msb @openai/agents microsandbox zod
+```sh
+npm i openai-agents-msb @openai/agents microsandbox zod
 ```
 
-`@openai/agents` and `zod` are peer dependencies.
-
-Two entry points: `openai-agents-msb` for `run()` and the tools, and `openai-agents-msb/core` for
-`WorkspaceContext` and the workspace types.
-
-## Quick start
+> **Requirements**: Node.js 22+ on macOS (Apple Silicon), Linux (KVM) or Windows (WHP).
 
 ```ts
 import fs from 'node:fs'
 import { Agent } from '@openai/agents'
-import { run, sandboxRun, sandboxReadFile, sandboxWriteFile, sandboxExec } from 'openai-agents-msb'
+import { run, sandboxRun, sandboxExec, sandboxReadFile, sandboxWriteFile } from 'openai-agents-msb'
 import { WorkspaceContext } from 'openai-agents-msb/core'
 
 const agent = new Agent({
   name: 'doc-agent',
-  instructions: 'You work with files in /workspace/. Use sandbox tools to read, write, and run code.',
+  instructions: 'Files are in /workspace. Use the sandbox tools.',
   tools: [
     sandboxRun({ image: 'python:3.12-slim', interpreter: 'python3' }),
+    sandboxExec(),
     sandboxReadFile(),
     sandboxWriteFile(),
-    sandboxExec(),
   ],
 })
 
-const result = await run(
-  agent,
-  'Convert the spreadsheet to a summary PDF',
-  WorkspaceContext({
-    inputFiles: [{ name: 'data.xlsx', data: fs.readFileSync('./data.xlsx') }],
-    onFileOutput: (payload) => fs.copyFileSync(payload.path, `./output/${payload.file_name}`),
-  }),
-)
+await run(agent, 'Summarize data.xlsx as a PDF', WorkspaceContext({
+  inputFiles: [{ name: 'data.xlsx', data: fs.readFileSync('data.xlsx') }],
+  onFileOutput: (file) => fs.copyFileSync(file.path, `out/${file.file_name}`),
+}))
 ```
-
-`run()` has the same signatures as `run()` from `@openai/agents`. On the first sandbox tool call it starts the sandbox
-and seeds `/workspace/`; after the run it emits changed files and tears the sandbox down. MST does not change
-`@openai/agents` tracing; call `setTracingDisabled(true)` yourself if your model provider has no OpenAI API key.
 
 ## Tools
 
-| Tool | What it does |
+| Tool | Does |
 |---|---|
-| `sandboxRun()` | Run a script (Python, etc.) inside the sandbox |
-| `sandboxExec({ timeoutSecs? })` | Run a shell command (`pip install`, `ls`, etc.). Killed after `timeoutSecs` (default 600) |
-| `sandboxReadFile()` | Read a text file from the sandbox filesystem |
-| `sandboxWriteFile()` | Write a file to the sandbox filesystem |
-| `sandboxListFiles()` | List files in the sandbox workspace |
+| `sandboxRun(options)` | Runs a script; configures the sandbox |
+| `sandboxExec({ timeoutSecs?, maxOutputBytes? })` | Runs a shell command (default timeout 600s) |
+| `sandboxReadFile()` | Reads a text file |
+| `sandboxWriteFile()` | Writes a text file |
+| `sandboxListFiles()` | Lists a directory |
 
-Streaming, persistent sessions (`endSession`, `listSessions`), network allowlists and scoped secrets are covered in the [main README](https://github.com/iyifr/model-sandbox-tools#readme).
+<details>
+<summary><em>All <code>sandboxRun</code> options →</em></summary>
+
+```ts
+sandboxRun({
+  image: 'python:3.12-slim',
+  interpreter: 'python3',
+  network: 'public',           // see Network
+  packages: ['python-docx'],   // pip install on start
+  timeoutSecs: 120,            // per script, default 30
+  maxOutputBytes: 32768,       // stdout/stderr sent to the model
+  memory: 512,                 // MB
+  cpus: 1,
+  persist: true,               // see Sessions
+  secrets: [{ env: 'API_KEY', value: process.env.API_KEY!, host: 'api.example.com' }],
+  env: { TZ: 'UTC' },
+})
+```
+
+Handoffs and `agent.asTool()` agents share the run's sandbox. Tools with no `sandboxRun()` anywhere use `python:3.12-slim`.
+
+</details>
+
+## Files
+
+`onFileOutput` fires for each new or changed file after the run. `file_name` is relative to `/workspace`;
+`path` is valid during the callback; `buffer` is omitted for files over 2 GiB.
+
+```ts
+WorkspaceContext({
+  inputFiles: [{ name: 'brief.docx', data }, new File([pdf], 'contract.pdf')],
+  onFileOutput: (file) => fs.copyFileSync(file.path, file.file_name),
+  onWorkspaceSnapshot: (paths) => console.log(paths),
+})
+```
+
+## Streaming
+
+```ts
+const result = await run(agent, 'Draft a brief', { stream: true, ...WorkspaceContext({ onFileOutput }) })
+for await (const event of result) { /* ... */ }
+await result.completed   // outputs delivered, sandbox stopped
+```
+
+## Network
+
+```ts
+sandboxRun({ network: 'none' })                                // default
+sandboxRun({ network: 'public' })                              // internet, not LAN or cloud metadata
+sandboxRun({ network: { allow: ['api.example.com', '*.github.com', '10.0.0.0/8'] } })
+```
+
+`secrets` hosts and PyPI (for `packages`) are allowed automatically. A host that echoes request headers back can leak a secret's real value, so only scope secrets to APIs you trust.
+
+## Sessions
+
+Set `persist: true` on `sandboxRun()` and pass a `sandboxName` to keep one VM per conversation.
+
+```ts
+await run(agent, 'Draft it', WorkspaceContext({ sandboxName: 'case-42', inputFiles }))
+await run(agent, 'Now shorten it', WorkspaceContext({ sandboxName: 'case-42', skipInputSeed: true }))
+
+await endSession('case-42')        // delete the VM and its files
+await listSessions()               // [{ name, sandbox, lastUsed, workspaceDir }]
+```
+
+A follow-up on a deleted session throws `SessionNotFoundError`. Runs on the same session are queued.
 
 ## License
 
