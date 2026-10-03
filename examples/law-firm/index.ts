@@ -1,8 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { run } from '@iyifr/openai-agents-msb'
-import { WorkspaceContext } from '@iyifr/mst-core'
+import { run } from 'openai-agents-msb'
+import { WorkspaceContext } from 'openai-microsandbox-core'
 
 import { createLawyerAgent } from './lawyer-agent.js'
 

@@ -1,5 +1,5 @@
 {
-  "name": "@iyifr/mst-core",
+  "name": "openai-microsandbox-core",
   "version": "0.1.0",
   "description": "Sandbox lifecycle, workspace I/O and file change detection for Model Sandbox Tools (MST).",
   "license": "MIT",

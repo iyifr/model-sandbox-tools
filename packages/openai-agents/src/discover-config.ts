@@ -1,6 +1,6 @@
 import type { Agent } from '@openai/agents'
-import { MST_SANDBOX_CONFIG, MST_TOOL } from '@iyifr/mst-core'
-import type { SandboxRunOptions } from '@iyifr/mst-core'
+import { MST_SANDBOX_CONFIG, MST_TOOL } from 'openai-microsandbox-core'
+import type { SandboxRunOptions } from 'openai-microsandbox-core'
 
 /** Used when an agent has sandbox tools but no sandboxRun() to configure them. */
 export const DEFAULT_SANDBOX_CONFIG: SandboxRunOptions = {

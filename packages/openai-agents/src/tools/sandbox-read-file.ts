@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { mstTool } from './mst-tool.js'
-import { getActiveSandbox } from '@iyifr/mst-core'
+import { getActiveSandbox } from 'openai-microsandbox-core'
 
 const MAX_READ_BYTES = 1024 * 1024
 

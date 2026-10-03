@@ -1,7 +1,7 @@
 import { isIP } from 'node:net'
 import { Sandbox } from 'microsandbox'
 import type { NetworkPolicy, SandboxBuilder } from 'microsandbox'
-import type { NetworkConfig, SandboxRunOptions } from '@iyifr/mst-core'
+import type { NetworkConfig, SandboxRunOptions } from 'openai-microsandbox-core'
 
 const PYPI_HOSTS = ['pypi.org', 'files.pythonhosted.org']
 

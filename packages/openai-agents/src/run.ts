@@ -3,8 +3,8 @@ import { run as openaiRun, type Agent } from '@openai/agents'
 
 import { Sandbox, SandboxNotFoundError, Volume } from 'microsandbox'
 import type { Sandbox as SandboxInstance } from 'microsandbox'
-import { sandboxStore, SandboxSetupError, WORKSPACE_CTX } from '@iyifr/mst-core'
-import type { SandboxProvider, SandboxRunOptions, WorkspaceContextOptions } from '@iyifr/mst-core'
+import { sandboxStore, SandboxSetupError, WORKSPACE_CTX } from 'openai-microsandbox-core'
+import type { SandboxProvider, SandboxRunOptions, WorkspaceContextOptions } from 'openai-microsandbox-core'
 import { DEFAULT_SANDBOX_CONFIG, configKey, discoverSandboxConfig } from './discover-config.js'
 import { applyNetwork, validateNetwork } from './network.js'
 import {

@@ -1,5 +1,5 @@
 import type { Sandbox } from 'microsandbox'
-import { formatYaml } from '@iyifr/mst-core'
+import { formatYaml } from 'openai-microsandbox-core'
 
 export const DEFAULT_MAX_OUTPUT_BYTES = 32 * 1024
 

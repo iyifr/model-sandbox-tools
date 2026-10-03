@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { mstTool } from './mst-tool.js'
-import { getActiveSandbox, MST_SANDBOX_CONFIG } from '@iyifr/mst-core'
-import type { SandboxRunOptions } from '@iyifr/mst-core'
+import { getActiveSandbox, MST_SANDBOX_CONFIG } from 'openai-microsandbox-core'
+import type { SandboxRunOptions } from 'openai-microsandbox-core'
 import { DEFAULT_MAX_OUTPUT_BYTES, execToYaml } from './exec.js'
 
 export function sandboxRun(options: SandboxRunOptions) {

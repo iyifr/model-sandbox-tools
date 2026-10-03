@@ -6,16 +6,16 @@ MST wraps [microsandbox](https://github.com/superradcompany/microsandbox) and [@
 
 | Package | Description |
 |---|---|
-| `@iyifr/mst-core` | Sandbox lifecycle, workspace I/O, file change detection |
-| `@iyifr/openai-agents-msb` | Drop-in `run()` replacement + sandbox tools for `@openai/agents` |
+| `openai-microsandbox-core` | Sandbox lifecycle, workspace I/O, file change detection |
+| `openai-agents-msb` | Drop-in `run()` replacement + sandbox tools for `@openai/agents` |
 
 ## Install
 
 ```bash
-npm install @iyifr/mst-core @iyifr/openai-agents-msb @openai/agents microsandbox zod
+npm install openai-microsandbox-core openai-agents-msb @openai/agents microsandbox zod
 ```
 
-`@openai/agents` and `zod` are peer dependencies of `@iyifr/openai-agents-msb`.
+`@openai/agents` and `zod` are peer dependencies of `openai-agents-msb`.
 
 ## Quick Start
 
@@ -24,8 +24,8 @@ The simplest way to use MST -> send files into a sandbox, let the agent work, ge
 ```ts
 import fs from 'node:fs'
 import { Agent } from '@openai/agents'
-import { run, sandboxRun, sandboxReadFile, sandboxWriteFile, sandboxExec } from '@iyifr/openai-agents-msb'
-import { WorkspaceContext } from '@iyifr/mst-core'
+import { run, sandboxRun, sandboxReadFile, sandboxWriteFile, sandboxExec } from 'openai-agents-msb'
+import { WorkspaceContext } from 'openai-microsandbox-core'
 
 const agent = new Agent({
   name: 'doc-agent',
@@ -203,7 +203,7 @@ Concurrent `run()` calls with the same `sandboxName` in one process are queued: 
 Persistent sessions keep a VM and a workspace folder on disk until you end them.
 
 ```ts
-import { run, endSession, listSessions, SessionNotFoundError } from '@iyifr/openai-agents-msb'
+import { run, endSession, listSessions, SessionNotFoundError } from 'openai-agents-msb'
 
 const workspaceRoot = '/secure/tenant-42'   // optional; default ~/.mst/workspaces
 
@@ -254,12 +254,12 @@ pnpm demo:law-firm:cli
 │  └────────────┬──────────────────────────────┘  │
 │               │                                  │
 │  ┌────────────▼──────────────────────────────┐  │
-│  │  @iyifr/openai-agents-msb                 │  │
+│  │  openai-agents-msb                        │  │
 │  │  run() · sandboxRun · sandboxExec · ...   │  │
 │  └────────────┬──────────────────────────────┘  │
 │               │                                  │
 │  ┌────────────▼──────────────────────────────┐  │
-│  │  @iyifr/mst-core                          │  │
+│  │  openai-microsandbox-core                 │  │
 │  │  WorkspaceContext · sandbox lifecycle     │  │
 │  │  file snapshots · change detection        │  │
 │  └────────────┬──────────────────────────────┘  │

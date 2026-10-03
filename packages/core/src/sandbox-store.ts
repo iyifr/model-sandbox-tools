@@ -25,7 +25,7 @@ export async function getActiveSandbox(requested?: SandboxRunOptions): Promise<S
   const provider = sandboxStore.getStore()
   if (!provider) {
     throw new SandboxSetupError(
-      '[mst] No active sandbox. Wrap your run() call with @iyifr/openai-agents-msb run()',
+      '[mst] No active sandbox. Wrap your run() call with openai-agents-msb run()',
     )
   }
   return provider.get(requested)

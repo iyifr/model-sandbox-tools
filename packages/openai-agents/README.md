@@ -1,4 +1,4 @@
-# @iyifr/openai-agents-msb
+# openai-agents-msb
 
 Give [`@openai/agents`](https://github.com/openai/openai-agents-js) agents an isolated [microsandbox](https://github.com/superradcompany/microsandbox) workspace: a drop-in `run()` replacement plus five sandbox tools.
 
@@ -7,7 +7,7 @@ Part of [Model Sandbox Tools (MST)](https://github.com/iyifr/model-sandbox-tools
 ## Install
 
 ```bash
-npm install @iyifr/mst-core @iyifr/openai-agents-msb @openai/agents microsandbox zod
+npm install openai-microsandbox-core openai-agents-msb @openai/agents microsandbox zod
 ```
 
 `@openai/agents` and `zod` are peer dependencies.
@@ -17,8 +17,8 @@ npm install @iyifr/mst-core @iyifr/openai-agents-msb @openai/agents microsandbox
 ```ts
 import fs from 'node:fs'
 import { Agent } from '@openai/agents'
-import { run, sandboxRun, sandboxReadFile, sandboxWriteFile, sandboxExec } from '@iyifr/openai-agents-msb'
-import { WorkspaceContext } from '@iyifr/mst-core'
+import { run, sandboxRun, sandboxReadFile, sandboxWriteFile, sandboxExec } from 'openai-agents-msb'
+import { WorkspaceContext } from 'openai-microsandbox-core'
 
 const agent = new Agent({
   name: 'doc-agent',

@@ -19,7 +19,7 @@ function fail(name: string, err: unknown) {
   console.error(`  FAIL: ${name}`, err)
 }
 
-// --- @iyifr/mst-core (always) ---
+// --- openai-microsandbox-core (always) ---
 const yaml = formatYaml({ exit_code: 0, stdout: 'hello', stderr: '' })
 if (yaml.includes('exit_code: 0') && yaml.includes('hello')) ok('formatYaml')
 else fail('formatYaml', yaml)
@@ -35,7 +35,7 @@ const ctx = WorkspaceContext({ inputFiles: [] })
 if (typeof ctx === 'object' && ctx !== null) ok('WorkspaceContext')
 else fail('WorkspaceContext', ctx)
 
-// --- @iyifr/openai-agents-msb (requires microsandbox native bindings) ---
+// --- openai-agents-msb (requires microsandbox native bindings) ---
 if (!microsandboxSupported) {
   console.log(
     `  skip: openai-agents runtime tests (microsandbox unsupported on ${process.platform}-${process.arch})`,

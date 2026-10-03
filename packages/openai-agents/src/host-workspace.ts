@@ -3,8 +3,8 @@ import { createReadStream } from 'node:fs'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { assertSafeFilename, normalizeFile } from '@iyifr/mst-core'
-import type { WorkspaceContextOptions, WorkspaceInput } from '@iyifr/mst-core'
+import { assertSafeFilename, normalizeFile } from 'openai-microsandbox-core'
+import type { WorkspaceContextOptions, WorkspaceInput } from 'openai-microsandbox-core'
 
 /**
  * /workspace is a host directory bind-mounted into the VM, so outputs are read
