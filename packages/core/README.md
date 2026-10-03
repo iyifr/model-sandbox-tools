@@ -1,4 +1,4 @@
-# mst-core
+# @iyifr/mst-core
 
 Core primitives for [Model Sandbox Tools (MST)](https://github.com/iyifr/model-sandbox-tools) — sandbox lifecycle, workspace I/O, and file change detection on top of [microsandbox](https://github.com/superradcompany/microsandbox).
 
@@ -7,7 +7,7 @@ Most users don't install this directly. If you're using the OpenAI Agents SDK, i
 ## Install
 
 ```bash
-npm install mst-core microsandbox
+npm install @iyifr/mst-core microsandbox
 ```
 
 ## What's in here
@@ -19,11 +19,11 @@ npm install mst-core microsandbox
 ## Usage
 
 ```ts
-import { WorkspaceContext } from 'mst-core'
+import { WorkspaceContext } from '@iyifr/mst-core'
 
 const ctx = WorkspaceContext({
   inputFiles: [{ name: 'data.xlsx', data: buf }],
-  onFileOutput: (payload) => fs.writeFileSync(payload.file_name, payload.buffer),
+  onFileOutput: (payload) => fs.copyFileSync(payload.path, payload.file_name),
 })
 ```
 

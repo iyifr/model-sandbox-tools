@@ -1,9 +1,9 @@
-import { tool } from '@openai/agents'
 import { z } from 'zod'
-import { getActiveSandbox } from 'mst-core'
+import { mstTool } from './mst-tool.js'
+import { getActiveSandbox } from '@iyifr/mst-core'
 
 export function sandboxWriteFile() {
-  return tool({
+  return mstTool({
     name: 'sandbox_write_file',
     description:
       'Write text content directly to a file in the sandbox. ' +
@@ -18,7 +18,7 @@ export function sandboxWriteFile() {
         return `[mst] invalid path: ${JSON.stringify(path)}`
       }
 
-      const sb = getActiveSandbox()
+      const sb = await getActiveSandbox()
 
       // Ensure every ancestor directory exists before writing
       const segments = path.split('/').filter(Boolean)

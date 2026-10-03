@@ -1,18 +1,18 @@
 # Model Sandbox Tools (MST)
-Microsandbox plugin for OpenAI Agents SDK. Give agents built with Agents SDK isolated sandboxes to do work. 
+Microsandbox plugin for OpenAI Agents SDK. Give your agents isolated sandboxes for writing code.
 MST wraps [microsandbox](https://github.com/superradcompany/microsandbox) and [@openai/agents](https://github.com/openai/openai-agents-js) so your agent can run Python scripts, read/write files, and execute shell commands, all inside a locked-down container.
 
 ## Packages
 
 | Package | Description |
 |---|---|
-| `mst-core` | Sandbox lifecycle, workspace I/O, file change detection |
+| `@iyifr/mst-core` | Sandbox lifecycle, workspace I/O, file change detection |
 | `@iyifr/openai-agents-msb` | Drop-in `run()` replacement + sandbox tools for `@openai/agents` |
 
 ## Install
 
 ```bash
-npm install mst-core @iyifr/openai-agents-msb @openai/agents microsandbox zod
+npm install @iyifr/mst-core @iyifr/openai-agents-msb @openai/agents microsandbox zod
 ```
 
 `@openai/agents` and `zod` are peer dependencies of `@iyifr/openai-agents-msb`.
@@ -25,7 +25,7 @@ The simplest way to use MST -> send files into a sandbox, let the agent work, ge
 import fs from 'node:fs'
 import { Agent } from '@openai/agents'
 import { run, sandboxRun, sandboxReadFile, sandboxWriteFile, sandboxExec } from '@iyifr/openai-agents-msb'
-import { WorkspaceContext } from 'mst-core'
+import { WorkspaceContext } from '@iyifr/mst-core'
 
 const agent = new Agent({
   name: 'doc-agent',
@@ -46,7 +46,7 @@ const result = await run(
       { name: 'data.xlsx', data: fs.readFileSync('./data.xlsx') },
     ],
     onFileOutput: (payload) => {
-      fs.writeFileSync(`./output/${payload.file_name}`, payload.buffer)
+      fs.copyFileSync(payload.path, `./output/${payload.file_name}`)
     },
   }),
 )
@@ -59,13 +59,17 @@ MST automatically:
 - Diffs the workspace after completion and calls `onFileOutput` for new/changed files
 - Tears down the sandbox
 
+The sandbox VM starts on the first sandbox tool call, so turns where the agent only chats boot nothing.
+Agents reached through handoffs or `agent.asTool()` share the same sandbox. Tools without a `sandboxRun()`
+anywhere in the agent graph use a default `python:3.12-slim` image.
+
 ## Sandbox Tools
 MST provides five tools that agents can use inside the sandbox:
 
 | Tool | What it does |
 |---|---|
 | `sandboxRun()` | Run a script (Python, etc.) inside the sandbox |
-| `sandboxExec()` | Run a shell command (`pip install`, `ls`, etc.) |
+| `sandboxExec({ timeoutSecs? })` | Run a shell command (`pip install`, `ls`, etc.). Killed after `timeoutSecs` (default 600) |
 | `sandboxReadFile()` | Read a text file from the sandbox filesystem |
 | `sandboxWriteFile()` | Write a file to the sandbox filesystem |
 | `sandboxListFiles()` | List files in the sandbox workspace |
@@ -76,8 +80,9 @@ MST provides five tools that agents can use inside the sandbox:
 sandboxRun({
   image: 'python:3.12-slim',   // Container image
   interpreter: 'python3',       // Script interpreter
-  network: true,                 // Allow network access (or { allow: ['api.example.com'] })
+  network: 'public',             // 'none' | 'public' | { allow: [...] } — see Network Security
   timeoutSecs: 120,              // Script timeout
+  maxOutputBytes: 32768,         // stdout/stderr cap sent to the model (keeps head + tail)
   persist: true,                 // Keep sandbox alive between turns
   packages: ['python-docx'],    // Auto-install via pip
   memory: 512,                  // Memory limit (MB)
@@ -91,7 +96,9 @@ sandboxRun({
 
 ## Workspace Context
 
-`WorkspaceContext()` configures how files flow in and out of the sandbox:
+`WorkspaceContext()` configures how files flow in and out of the sandbox.
+`/workspace` is a host directory mounted into the VM, so files the agent wrote are still delivered if the VM crashes.
+Persistent sessions keep theirs in `~/.mst/workspaces/<sandboxName>`; other runs use a temp directory that is deleted afterwards.
 
 ```ts
 WorkspaceContext({
@@ -101,10 +108,12 @@ WorkspaceContext({
     new File([pdfBytes], 'contract.pdf'),
   ],
 
-  // Called for each new or modified file after the agent finishes
+  // Called for each new or modified file after the agent finishes.
+  // file_name is relative to /workspace, e.g. 'reports/q1/summary.md'.
+  // payload.path is only valid during this callback; payload.buffer is omitted for files of 2 GiB or more.
   onFileOutput: (payload) => {
     console.log(`${payload.file_name} changed`)
-    fs.writeFileSync(payload.file_name, payload.buffer)
+    fs.copyFileSync(payload.path, payload.file_name)
   },
 
   // Called with the full file tree after each run (useful for UI)
@@ -145,20 +154,26 @@ await result.completed
 Control what the sandbox can access:
 
 ```ts
-// No network at all (default if no packages/secrets)
-sandboxRun({ network: false, ... })
+// No network at all (the default when no packages/secrets are set); `false` also works
+sandboxRun({ network: 'none', ... })
 
-// Full unrestricted network
-sandboxRun({ network: true, ... })
+// Public internet only — LAN, host and cloud metadata addresses stay blocked; `true` also works
+sandboxRun({ network: 'public', ... })
 
-// Allowlist specific domains
+// Allowlist: exact domains, wildcards (also match the apex), IPs or CIDRs
 sandboxRun({
-  network: { allow: ['api.example.com', 'cdn.example.com'] },
+  network: { allow: ['api.example.com', '*.githubusercontent.com', '10.0.0.0/8'] },
   ...
 })
+
+// Full control: pass a microsandbox NetworkPolicy straight through
+import { NetworkPolicy } from 'microsandbox'
+sandboxRun({ network: NetworkPolicy.fromProfiles(['public']), ... })
 ```
 
-Domains from `secrets[].host` and PyPI (when `packages` is set) are automatically added to the allowlist.
+Hosts from `secrets[].host` and PyPI (when `packages` is set) are added to the allowlist automatically.
+Domain rules and secrets make microsandbox terminate TLS on port 443 so it can match hostnames and substitute
+secrets; code in the sandbox only ever sees a placeholder, never the real secret value.
 
 ## Persistent Sandboxes
 
@@ -180,6 +195,42 @@ await run(agent, 'Now translate to Spanish', WorkspaceContext({
   skipInputSeed: true,
 }))
 ```
+
+Concurrent `run()` calls with the same `sandboxName` in one process are queued: each waits for the previous one to finish, so a second turn can never replace a sandbox that is still in use.
+
+## Session Lifecycle
+
+Persistent sessions keep a VM and a workspace folder on disk until you end them.
+
+```ts
+import { run, endSession, listSessions, SessionNotFoundError } from '@iyifr/openai-agents-msb'
+
+const workspaceRoot = '/secure/tenant-42'   // optional; default ~/.mst/workspaces
+
+// Follow-up turn: re-seed if the session was deleted in the meantime
+try {
+  await run(agent, message, WorkspaceContext({ sandboxName, workspaceRoot, skipInputSeed: true, onFileOutput }))
+} catch (err) {
+  if (!(err instanceof SessionNotFoundError)) throw err
+  await run(agent, message, WorkspaceContext({ sandboxName, workspaceRoot, inputFiles, onFileOutput }))
+}
+
+// Conversation closed: delete the VM and the files
+await endSession(sandboxName, { workspaceRoot })
+
+// Or keep the files (e.g. to archive them) and only delete the VM
+await endSession(sandboxName, { workspaceRoot, keepFiles: true })
+
+// Retention policy: end sessions idle for 30 days
+for (const s of await listSessions({ workspaceRoot })) {
+  if (Date.now() - s.lastUsed.getTime() > 30 * 24 * 3600 * 1000) await endSession(s.name, { workspaceRoot })
+}
+```
+
+- `endSession()` waits for any in-flight `run()` on that session, and is a no-op for unknown names.
+- `listSessions()` returns `{ name, workspaceDir, sandbox: 'running' | 'stopped' | 'missing', lastUsed }`, newest first.
+- Pass the same `workspaceRoot` to every turn of a session and to `listSessions()` / `endSession()`.
+- Starting a session again with `skipInputSeed: false` clears its workspace, so copy out files kept with `keepFiles` first.
 
 ## Example: Law Firm Document Agent
 
@@ -208,7 +259,7 @@ pnpm demo:law-firm:cli
 │  └────────────┬──────────────────────────────┘  │
 │               │                                  │
 │  ┌────────────▼──────────────────────────────┐  │
-│  │  mst-core                                 │  │
+│  │  @iyifr/mst-core                          │  │
 │  │  WorkspaceContext · sandbox lifecycle     │  │
 │  │  file snapshots · change detection        │  │
 │  └────────────┬──────────────────────────────┘  │

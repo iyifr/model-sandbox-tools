@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { run } from '@iyifr/openai-agents-msb'
-import { WorkspaceContext } from 'mst-core'
+import { WorkspaceContext } from '@iyifr/mst-core'
 
 import { createLawyerAgent } from './lawyer-agent.js'
 
@@ -23,7 +23,7 @@ const result = await run(
     onFileOutput: async (payload) => {
       if (payload.file_name === 'completed_brief.docx') {
         fs.mkdirSync(path.join(ROOT, 'output'), { recursive: true })
-        fs.writeFileSync(path.join(ROOT, 'output', 'completed_brief.docx'), payload.buffer)
+        fs.copyFileSync(payload.path, path.join(ROOT, 'output', 'completed_brief.docx'))
         console.log(`Saved ${payload.file_name} (version ${payload.version})`)
       }
     },

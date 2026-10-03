@@ -1,5 +1,5 @@
 {
-  "name": "mst-core",
+  "name": "@iyifr/mst-core",
   "version": "0.1.0",
   "description": "Sandbox lifecycle, workspace I/O and file change detection for Model Sandbox Tools (MST).",
   "license": "MIT",
@@ -31,6 +31,7 @@
     }
   },
   "files": [
+    "src",
     "dist"
   ],
   "engines": {
@@ -44,7 +45,7 @@
     "prepublishOnly": "tsc"
   },
   "dependencies": {
-    "microsandbox": ">=0.6.1 <0.8.0"
+    "microsandbox": ">=0.7.0 <0.8.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

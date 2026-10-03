@@ -1,16 +1,16 @@
-import { tool } from '@openai/agents'
 import { z } from 'zod'
-import { getActiveSandbox } from 'mst-core'
+import { mstTool } from './mst-tool.js'
+import { getActiveSandbox } from '@iyifr/mst-core'
 
 export function sandboxListFiles() {
-  return tool({
+  return mstTool({
     name: 'sandbox_list_files',
     description: 'List files in a directory inside the sandbox.',
     parameters: z.object({
       path: z.string().default('/workspace').describe('Directory path to list'),
     }),
     execute: async ({ path }) => {
-      const entries = await getActiveSandbox().fs().list(path)
+      const entries = await (await getActiveSandbox()).fs().list(path)
       return entries
         .map((e) => `${e.kind === 'directory' ? 'd' : 'f'}  ${e.path}`)
         .join('\n')

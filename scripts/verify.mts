@@ -19,7 +19,7 @@ function fail(name: string, err: unknown) {
   console.error(`  FAIL: ${name}`, err)
 }
 
-// --- mst-core (always) ---
+// --- @iyifr/mst-core (always) ---
 const yaml = formatYaml({ exit_code: 0, stdout: 'hello', stderr: '' })
 if (yaml.includes('exit_code: 0') && yaml.includes('hello')) ok('formatYaml')
 else fail('formatYaml', yaml)

@@ -7,7 +7,7 @@ Part of [Model Sandbox Tools (MST)](https://github.com/iyifr/model-sandbox-tools
 ## Install
 
 ```bash
-npm install mst-core @iyifr/openai-agents-msb @openai/agents microsandbox zod
+npm install @iyifr/mst-core @iyifr/openai-agents-msb @openai/agents microsandbox zod
 ```
 
 `@openai/agents` and `zod` are peer dependencies.
@@ -18,7 +18,7 @@ npm install mst-core @iyifr/openai-agents-msb @openai/agents microsandbox zod
 import fs from 'node:fs'
 import { Agent } from '@openai/agents'
 import { run, sandboxRun, sandboxReadFile, sandboxWriteFile, sandboxExec } from '@iyifr/openai-agents-msb'
-import { WorkspaceContext } from 'mst-core'
+import { WorkspaceContext } from '@iyifr/mst-core'
 
 const agent = new Agent({
   name: 'doc-agent',
@@ -36,7 +36,7 @@ const result = await run(
   'Convert the spreadsheet to a summary PDF',
   WorkspaceContext({
     inputFiles: [{ name: 'data.xlsx', data: fs.readFileSync('./data.xlsx') }],
-    onFileOutput: (payload) => fs.writeFileSync(`./output/${payload.file_name}`, payload.buffer),
+    onFileOutput: (payload) => fs.copyFileSync(payload.path, `./output/${payload.file_name}`),
   }),
 )
 ```
@@ -48,7 +48,7 @@ const result = await run(
 | Tool | What it does |
 |---|---|
 | `sandboxRun()` | Run a script (Python, etc.) inside the sandbox |
-| `sandboxExec()` | Run a shell command (`pip install`, `ls`, etc.) |
+| `sandboxExec({ timeoutSecs? })` | Run a shell command (`pip install`, `ls`, etc.). Killed after `timeoutSecs` (default 600) |
 | `sandboxReadFile()` | Read a text file from the sandbox filesystem |
 | `sandboxWriteFile()` | Write a file to the sandbox filesystem |
 | `sandboxListFiles()` | List files in the sandbox workspace |

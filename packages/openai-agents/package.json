@@ -32,6 +32,7 @@
     }
   },
   "files": [
+    "src",
     "dist"
   ],
   "engines": {
@@ -45,11 +46,11 @@
     "prepublishOnly": "tsc"
   },
   "dependencies": {
-    "mst-core": "workspace:^",
-    "microsandbox": ">=0.6.1 <0.8.0"
+    "@iyifr/mst-core": "workspace:^",
+    "microsandbox": ">=0.7.0 <0.8.0"
   },
   "peerDependencies": {
-    "@openai/agents": ">=0.12.0 <1.0.0",
+    "@openai/agents": ">=0.12.0 <0.19.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {

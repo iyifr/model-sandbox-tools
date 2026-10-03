@@ -1,8 +1,14 @@
 import type { Agent } from '@openai/agents'
-import { MST_SANDBOX_CONFIG } from 'mst-core'
-import type { SandboxRunOptions } from 'mst-core'
+import { MST_SANDBOX_CONFIG, MST_TOOL } from '@iyifr/mst-core'
+import type { SandboxRunOptions } from '@iyifr/mst-core'
 
-function configKey(c: SandboxRunOptions): string {
+/** Used when an agent has sandbox tools but no sandboxRun() to configure them. */
+export const DEFAULT_SANDBOX_CONFIG: SandboxRunOptions = {
+  image: 'python:3.12-slim',
+  interpreter: 'python3',
+}
+
+export function configKey(c: SandboxRunOptions): string {
   return JSON.stringify({
     image: c.image,
     interpreter: c.interpreter,
@@ -13,21 +19,40 @@ function configKey(c: SandboxRunOptions): string {
   })
 }
 
-export function discoverSandboxConfig(
-  agent: Agent<any, any>,
-): SandboxRunOptions | undefined {
-  const configs = agent.tools
-    .map((t) => (t as { [MST_SANDBOX_CONFIG]?: SandboxRunOptions })[MST_SANDBOX_CONFIG])
-    .filter(Boolean) as SandboxRunOptions[]
+export type DiscoveredSandbox = {
+  /** Options from sandboxRun() tools; undefined if none were found. */
+  config: SandboxRunOptions | undefined
+  /** Whether any MST tool is reachable. */
+  hasTools: boolean
+}
 
-  if (configs.length === 0) return undefined
-  if (configs.length === 1) return configs[0]
-
-  const first = configKey(configs[0])
-  if (configs.some((c) => configKey(c) !== first)) {
-    throw new Error(
-      '[mst] All sandboxRun() tools on an agent must use identical SandboxRunOptions',
-    )
+/**
+ * Collects sandbox tools from the agent and every agent reachable through handoffs.
+ * Agents wrapped with asTool() can't be inspected; their tools get the sandbox lazily.
+ */
+export function discoverSandboxConfig(agent: Agent<any, any>): DiscoveredSandbox {
+  const configs: SandboxRunOptions[] = []
+  let hasTools = false
+  const seen = new Set<Agent<any, any>>()
+  const visit = (a: Agent<any, any>) => {
+    if (seen.has(a)) return
+    seen.add(a)
+    for (const t of a.tools) {
+      const marked = t as { [MST_TOOL]?: boolean; [MST_SANDBOX_CONFIG]?: SandboxRunOptions }
+      if (marked[MST_TOOL]) hasTools = true
+      if (marked[MST_SANDBOX_CONFIG]) configs.push(marked[MST_SANDBOX_CONFIG])
+    }
+    for (const h of a.handoffs ?? []) visit('agent' in h ? h.agent : h)
   }
-  return configs[0]
+  visit(agent)
+
+  if (configs.length > 1) {
+    const first = configKey(configs[0]!)
+    if (configs.some((c) => configKey(c) !== first)) {
+      throw new Error(
+        '[mst] All sandboxRun() tools reachable from an agent (including handoffs) must use identical SandboxRunOptions',
+      )
+    }
+  }
+  return { config: configs[0], hasTools }
 }
