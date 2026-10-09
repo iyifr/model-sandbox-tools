@@ -1,0 +1,81 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "openai-agents-msb"
+version = "0.1.0"
+description = "Drop-in run() replacement and sandbox tools that give openai-agents agents an isolated microsandbox workspace."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "iyifr" }]
+keywords = [
+    "openai-agents",
+    "microsandbox",
+    "sandbox",
+    "ai-agents",
+    "llm",
+    "tools",
+    "code-interpreter",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+]
+dependencies = [
+    "microsandbox>=0.7.6,<0.8",
+    "openai-agents>=0.23,<0.24",
+]
+
+[project.urls]
+Homepage = "https://github.com/iyifr/model-sandbox-tools#readme"
+Repository = "https://github.com/iyifr/model-sandbox-tools"
+Issues = "https://github.com/iyifr/model-sandbox-tools/issues"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-timeout>=2.3",
+    "mypy>=1.13",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/openai_agents_msb"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "README.md", "LICENSE"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+# A wedged sandbox should fail the suite, not hang it. VM tests override this.
+timeout = 60
+markers = [
+    "vm: needs a real microsandbox VM on this host",
+    "network: needs outbound network access from the VM",
+    "llm: needs a real model; set MST_LLM_BASE_URL to enable",
+]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+files = ["src", "tests"]
+# microsandbox ships py.typed but its native stubs are partial in places.
+warn_unused_ignores = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
