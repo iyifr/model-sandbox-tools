@@ -1,8 +1,8 @@
 # openai-agents-msb
 
-**Give your OpenAI Agents an isolated [microsandbox](https://github.com/superradcompany/microsandbox) VM to run code and edit files in — in [TypeScript](packages/openai-agents) or [Python](python).**
+**Give your OpenAI Agents an isolated [microsandbox](https://github.com/superradcompany/microsandbox) VM to run code and edit files in [TypeScript](packages/openai-agents) or [Python](python).**
 
-- **Drop-in `run()`**: Same arguments as the Agents SDK's own runner. Swap the call, keep your agent.
+- **Drop-in `run()` method**: Same arguments as the Agents SDK's own runner. Swap the call, keep the agent definition from the SDK.
 - **Two SDKs, one behaviour**: TypeScript and Python, same tools, same guarantees.
 - **Files in, files out**: Seed `/workspace`, get every new or changed file back after the run.
 - **Lazy VMs**: The sandbox boots on the first tool call. Chat-only turns cost nothing.
@@ -94,9 +94,6 @@
 
 > The workspace is the optional third argument; everything else is passed through to the underlying
 > runner unchanged. Python also has `run_sync()`, mirroring `Runner.run_sync()`.
->
-> The first run pulls the image if it isn't cached locally, so it may take longer depending on your
-> connection. Later runs reuse the cache.
 
 &nbsp;
 
