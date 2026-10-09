@@ -2,7 +2,7 @@
 
 **Give your OpenAI Agents an isolated [microsandbox](https://github.com/superradcompany/microsandbox) VM to run code and edit files in [TypeScript](packages/openai-agents) or [Python](python).**
 
-- **Drop-in `run()` method**: Same arguments as the Agents SDK's own runner. Swap the call, keep the agent definition from the SDK.
+- **Drop-in** `run()` **method**: Same arguments as the Agents SDK's own runner. Swap the call, keep the agent definition from the SDK.
 - **Two SDKs, one behaviour**: TypeScript and Python, same tools, same guarantees.
 - **Files in, files out**: Seed `/workspace`, get every new or changed file back after the run.
 - **Lazy VMs**: The sandbox boots on the first tool call. Chat-only turns cost nothing.
@@ -10,11 +10,13 @@
 - **Secrets that stay out**: Code in the VM sees a placeholder, never the real key.
 - **Persistent sessions**: Keep one VM per conversation across turns.
 
-&nbsp;
+ 
 
-## &nbsp; Getting Started
+## Getting Started
 
-#### &nbsp; Install the SDK
+
+
+#### Install the SDK
 
 > ```sh
 > npm i openai-agents-msb @openai/agents microsandbox zod # 🟦 TypeScript
@@ -24,7 +26,9 @@
 > pip install openai-agents-msb # 🐍 Python
 > ```
 
-##
+
+
+
 
 > **Requirements**:
 >
@@ -33,8 +37,13 @@
 > - **Windows**: WHP enabled.
 >
 > Plus Node.js 22+ or Python 3.10+. The microsandbox runtime ships with the SDK; no daemon to run.
+>
+> **Same microsandbox version on Node and Python.** Both SDKs talk to the same local runtime. If one project
+> has `microsandbox@0.7.7` and another still has `0.7.6`, you can hit errors like
+> `database schema is newer than this msb binary`. After you upgrade microsandbox in one app, match the
+> version in the other (check with `npm ls microsandbox` and `pip show microsandbox`).
 
-#### &nbsp; Give an agent a sandbox
+#### Give an agent a sandbox
 
 > ```ts
 > import fs from 'node:fs'
@@ -43,8 +52,8 @@
 > import { WorkspaceContext } from 'openai-agents-msb/core'
 >
 > const agent = new Agent({
->   name: 'doc-agent',
->   instructions: 'Files are in /workspace. Use the sandbox tools.',
+>   name: 'reporter',
+>   instructions: 'Write report.html. A table of the rows, then the totals.',
 >   tools: [
 >     sandboxConfig({ image: 'python:3.12-slim', interpreter: 'python3' }),
 >     sandboxExec(),
@@ -53,15 +62,22 @@
 >   ],
 > })
 >
-> await run(agent, 'Summarize data.xlsx as a PDF', WorkspaceContext({
->   inputFiles: [{ name: 'data.xlsx', data: fs.readFileSync('data.xlsx') }],
->   onFileOutput: (file) => fs.copyFileSync(file.path, `out/${file.file_name}`),
+> await run(agent, 'March sales report', WorkspaceContext({
+>   inputFiles: [{ name: 'sales.csv', data: fs.readFileSync('sales.csv') }],
+>   onFileOutput: async (file) => {
+>     if (file.file_name !== 'report.html' || !file.buffer) return
+>     await s3.send(new PutObjectCommand({
+>       Bucket: 'reports',
+>       Key: 'march/report.html',
+>       Body: file.buffer,
+>       ContentType: 'text/html',
+>     }))
+>   },
 > }))
 > ```
 
 > ```python
 > import asyncio
-> import shutil
 > from pathlib import Path
 >
 > from agents import Agent
@@ -71,8 +87,8 @@
 > )
 >
 > agent = Agent(
->     name="doc-agent",
->     instructions="Files are in /workspace. Use the sandbox tools.",
+>     name="reporter",
+>     instructions="Write report.html. A table of the rows, then the totals.",
 >     tools=[
 >         sandbox_config(image="python:3.12-slim", interpreter="python3"),
 >         sandbox_exec(),
@@ -81,39 +97,48 @@
 >     ],
 > )
 >
+> async def on_report(file) -> None:
+>     if file.file_name != "report.html" or not file.data:
+>         return
+>     s3.put_object(
+>         Bucket="reports",
+>         Key="march/report.html",
+>         Body=file.data,
+>         ContentType="text/html",
+>     )
+>
 > async def main() -> None:
->     await run(agent, "Summarize data.xlsx as a PDF", WorkspaceContext(
->         input_files=[InputFile("data.xlsx", Path("data.xlsx").read_bytes())],
->         on_file_output=lambda f: shutil.copy(f.path, f"out/{f.file_name}"),
+>     await run(agent, "March sales report", WorkspaceContext(
+>         input_files=[InputFile("sales.csv", Path("sales.csv").read_bytes())],
+>         on_file_output=on_report,
 >     ))
 >
 > asyncio.run(main())
 > ```
 
-##
 
-> The workspace is the optional third argument; everything else is passed through to the underlying
+
+> The workspace is the optional third argument; everything else is passed through to the underlying  
 > runner unchanged. Python also has `run_sync()`, mirroring `Runner.run_sync()`.
 
-&nbsp;
+## Tools
 
-## &nbsp; Tools
 
-| Does | TypeScript | Python |
-|---|---|---|
-| Runs a script; configures the sandbox | `sandboxConfig(options)` | `sandbox_config(**options)` |
+| Does                                        | TypeScript                                       | Python                                                   |
+| ------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------- |
+| Runs a script; configures the sandbox       | `sandboxConfig(options)`                         | `sandbox_config(**options)`                              |
 | Runs a shell command (default timeout 600s) | `sandboxExec({ timeoutSecs?, maxOutputBytes? })` | `sandbox_exec(timeout_secs=600, max_output_bytes=32768)` |
-| Reads a text file | `sandboxReadFile()` | `sandbox_read_file()` |
-| Writes a text file | `sandboxWriteFile()` | `sandbox_write_file()` |
-| Lists a directory | `sandboxListFiles()` | `sandbox_list_files()` |
+| Reads a text file                           | `sandboxReadFile()`                              | `sandbox_read_file()`                                    |
+| Writes a text file                          | `sandboxWriteFile()`                             | `sandbox_write_file()`                                   |
+| Lists a directory                           | `sandboxListFiles()`                             | `sandbox_list_files()`                                   |
+
 
 The model sees the same five tool names in both languages: `sandbox_run`, `sandbox_exec`,
 `sandbox_read_file`, `sandbox_write_file` and `sandbox_list_files`.
 
-<details>
-<summary><em>All sandbox options →</em></summary>
+*All sandbox options →*
 
-##
+
 
 ```ts
 sandboxConfig({
@@ -153,11 +178,11 @@ Handoffs and `asTool()` / `as_tool()` agents share the run's sandbox. Agents wit
 anywhere use `python:3.12-slim`. Every reachable config must match, or the run fails before the
 model is called.
 
-</details>
 
-&nbsp;
 
-## &nbsp; Files
+ 
+
+## Files
 
 The file output callback fires for each new or changed file after the run. `file_name` is relative to
 `/workspace`, the host `path` is valid for the duration of the callback, and the in-memory contents
@@ -181,9 +206,9 @@ are omitted for files of 2 GiB or more.
 >
 > Both Python callbacks may be sync or async.
 
-&nbsp;
+ 
 
-## &nbsp; Streaming
+## Streaming
 
 > ```ts
 > const result = await run(agent, 'Draft a brief', { stream: true, ...WorkspaceContext({ onFileOutput }) })
@@ -201,13 +226,15 @@ are omitted for files of 2 GiB or more.
 > Python also offers `await result.wait_completed()` when you don't want the events, and
 > `async with run_streamed(...) as result:` to close everything down deterministically.
 
-##
+
+
+
 
 > Teardown runs when the stream finishes, including when you break out early or the run is cancelled.
 
-&nbsp;
+ 
 
-## &nbsp; Network
+## Network
 
 > ```ts
 > sandboxConfig({ network: 'none' })                                // default
@@ -221,49 +248,59 @@ are omitted for files of 2 GiB or more.
 > sandbox_config(..., network=Allow(["api.example.com", "*.github.com", "10.0.0.0/8"]))
 > ```
 
-##
+
+
+
 
 > `secrets` hosts and PyPI (for `packages`) are allowed automatically. Invalid policies fail before
 > the model runs. A host that echoes request headers back can leak a secret's real value, so only
 > scope secrets to APIs you trust.
 
-&nbsp;
+ 
 
-## &nbsp; Sessions
+## Sessions
 
 Turn on `persist` and pass a sandbox name to keep one VM per conversation.
 
 > ```ts
+> // sandboxConfig({ ..., persist: true }) on the agent
 > await run(agent, 'Draft it', WorkspaceContext({ sandboxName: 'case-42', inputFiles }))
 > await run(agent, 'Now shorten it', WorkspaceContext({ sandboxName: 'case-42', skipInputSeed: true }))
 >
 > await endSession('case-42')        // delete the VM and its files
-> await listSessions()               // [{ name, sandbox, lastUsed, workspaceDir }]
+> await listSessions()
 > ```
 
 > ```python
+> # sandbox_config(..., persist=True) on the agent
 > await run(agent, "Draft it", WorkspaceContext(sandbox_name="case-42", input_files=files))
 > await run(agent, "Now shorten it", WorkspaceContext(sandbox_name="case-42", skip_input_seed=True))
 >
 > await end_session("case-42")   # delete the VM and its files
-> await list_sessions()          # [SessionInfo(name, workspace_dir, sandbox, last_used)]
+> await list_sessions()
 > ```
 
-##
+
+
+
 
 > A follow-up on a deleted session raises `SessionNotFoundError`. Runs on the same session are queued.
 > Session workspaces live under `~/.mst/workspaces` unless you set a workspace root.
 
-&nbsp;
+ 
 
-## &nbsp; Packages
+## Packages
 
-| | |
-|---|---|
-| [`openai-agents-msb`](packages/openai-agents) (npm) | TypeScript, for [`@openai/agents`](https://github.com/openai/openai-agents-js) |
-| [`openai-agents-msb`](python) (PyPI) | Python, for [`openai-agents`](https://github.com/openai/openai-agents-python) |
 
-##
+|                                                     |                                                                                |
+| --------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `[openai-agents-msb](packages/openai-agents)` (npm) | TypeScript, for `[@openai/agents](https://github.com/openai/openai-agents-js)` |
+| `[openai-agents-msb](python)` (PyPI)                | Python, for `[openai-agents](https://github.com/openai/openai-agents-python)`  |
+
+
+
+
+
 
 > Releasing the Python package:
 >
@@ -276,8 +313,8 @@ Turn on `persist` and pass a sandbox name to keep one VM per conversation.
 > Needs `UV_PUBLISH_TOKEN`, or `--trusted-publishing always` in CI. Run with `--help` for the
 > full list of checks.
 
-&nbsp;
+ 
 
-## &nbsp; License
+## License
 
 MIT
